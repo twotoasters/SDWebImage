@@ -248,9 +248,11 @@ static SDImageCache *instance;
     if (!image && fromDisk)
     {
         image = [[[UIImage alloc] initWithContentsOfFile:[self cachePathForKey:key]] autorelease];
-        if (image)
-        {
-            [memCache setObject:image forKey:key];
+        @synchronized(memCache){
+            if (image)
+            {
+                [memCache setObject:image forKey:key];
+            }            
         }
     }
 
