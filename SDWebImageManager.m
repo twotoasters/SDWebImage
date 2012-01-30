@@ -86,21 +86,24 @@ static SDWebImageManager *instance;
 {
     // Very common mistake is to send the URL using NSString object instead of NSURL. For some strange reason, XCode won't
     // throw any warning for this type mismatch. Here we failsafe this error by allowing URLs to be passed as NSString.
-    if ([url isKindOfClass:NSString.class])
+    @synchronized(self)
     {
-        url = [NSURL URLWithString:(NSString *)url];
+        if ([url isKindOfClass:NSString.class])
+        {
+            url = [NSURL URLWithString:(NSString *)url];
+        }
+        
+        if (!url || !delegate || (!(options & SDWebImageRetryFailed) && [failedURLs containsObject:url]))
+        {
+            return;
+        }
+        
+        // Check the on-disk cache async so we don't block the main thread
+        [cacheDelegates addObject:delegate];
+        [cacheURLs addObject:url];
+        NSDictionary *info = [NSDictionary dictionaryWithObjectsAndKeys:delegate, @"delegate", url, @"url", [NSNumber numberWithInt:options], @"options", nil];
+        [[SDImageCache sharedImageCache] queryDiskCacheForKey:[url absoluteString] delegate:self userInfo:info];        
     }
-
-    if (!url || !delegate || (!(options & SDWebImageRetryFailed) && [failedURLs containsObject:url]))
-    {
-        return;
-    }
-
-    // Check the on-disk cache async so we don't block the main thread
-    [cacheDelegates addObject:delegate];
-    [cacheURLs addObject:url];
-    NSDictionary *info = [NSDictionary dictionaryWithObjectsAndKeys:delegate, @"delegate", url, @"url", [NSNumber numberWithInt:options], @"options", nil];
-    [[SDImageCache sharedImageCache] queryDiskCacheForKey:[url absoluteString] delegate:self userInfo:info];
 }
 
 - (void)cancelForDelegate:(id<SDWebImageManagerDelegate>)delegate
