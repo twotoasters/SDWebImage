@@ -275,26 +275,29 @@ static SDImageCache *instance;
         return;
     }
 
-    // First check the in-memory cache...
-    UIImage *image = [memCache objectForKey:key];
-    if (image)
-    {
-        // ...notify delegate immediately, no need to go async
-        if ([delegate respondsToSelector:@selector(imageCache:didFindImage:forKey:userInfo:)])
+    
+    @synchronized (memCache) {
+        // First check the in-memory cache...
+        UIImage *image = [memCache objectForKey:key];
+        if (image)
         {
-            [delegate imageCache:self didFindImage:image forKey:key userInfo:info];
+            // ...notify delegate immediately, no need to go async
+            if ([delegate respondsToSelector:@selector(imageCache:didFindImage:forKey:userInfo:)])
+            {
+                [delegate imageCache:self didFindImage:image forKey:key userInfo:info];
+            }
+            return;
         }
-        return;
+        
+        NSMutableDictionary *arguments = [NSMutableDictionary dictionaryWithCapacity:3];
+        [arguments setObject:key forKey:@"key"];
+        [arguments setObject:delegate forKey:@"delegate"];
+        if (info)
+        {
+            [arguments setObject:info forKey:@"userInfo"];
+        }
+        [cacheOutQueue addOperation:[[[NSInvocationOperation alloc] initWithTarget:self selector:@selector(queryDiskCacheOperation:) object:arguments] autorelease]];
     }
-
-    NSMutableDictionary *arguments = [NSMutableDictionary dictionaryWithCapacity:3];
-    [arguments setObject:key forKey:@"key"];
-    [arguments setObject:delegate forKey:@"delegate"];
-    if (info)
-    {
-        [arguments setObject:info forKey:@"userInfo"];
-    }
-    [cacheOutQueue addOperation:[[[NSInvocationOperation alloc] initWithTarget:self selector:@selector(queryDiskCacheOperation:) object:arguments] autorelease]];
 }
 
 - (void)removeImageForKey:(NSString *)key
