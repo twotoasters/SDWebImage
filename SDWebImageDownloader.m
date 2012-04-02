@@ -69,14 +69,20 @@ NSString *const SDWebImageDownloadStopNotification = @"SDWebImageDownloadStopNot
 - (void)start
 {
     // In order to prevent from potential duplicate caching (NSURLCache + SDImageCache) we disable the cache for image requests
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:15];
-    // Auth
-    CFHTTPMessageRef dummyRequest = CFHTTPMessageCreateRequest(kCFAllocatorDefault, (CFStringRef)request.HTTPMethod, (CFURLRef)url, kCFHTTPVersion1_1);
-    CFHTTPMessageAddAuthentication(dummyRequest, nil, (CFStringRef)@"alpha", (CFStringRef)@"r77xyz",kCFHTTPAuthenticationSchemeBasic, FALSE);
-    CFStringRef authorizationString = CFHTTPMessageCopyHeaderFieldValue(dummyRequest, CFSTR("Authorization"));
-    [request setValue:(NSString *)authorizationString forHTTPHeaderField:@"Authorization"];
-    CFRelease(dummyRequest);
-    CFRelease(authorizationString);
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:15];    
+    
+    NSPredicate* predicate = [NSPredicate predicateWithFormat:@"SELF contains 'beta.room77'"];
+    if ([predicate evaluateWithObject:[url absoluteString]]) {
+
+        // Auth
+        CFHTTPMessageRef dummyRequest = CFHTTPMessageCreateRequest(kCFAllocatorDefault, (CFStringRef)request.HTTPMethod, (CFURLRef)url, kCFHTTPVersion1_1);
+        CFHTTPMessageAddAuthentication(dummyRequest, nil, (CFStringRef)@"alpha", (CFStringRef)@"r77xyz",kCFHTTPAuthenticationSchemeBasic, FALSE);
+        CFStringRef authorizationString = CFHTTPMessageCopyHeaderFieldValue(dummyRequest, CFSTR("Authorization"));
+        [request setValue:(NSString *)authorizationString forHTTPHeaderField:@"Authorization"];
+        CFRelease(dummyRequest);
+        CFRelease(authorizationString);
+
+    }
     
     self.connection = [[[NSURLConnection alloc] initWithRequest:request delegate:self startImmediately:NO] autorelease];
 
